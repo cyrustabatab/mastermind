@@ -54,7 +54,11 @@ class Game:
             self.hovered_on = False
             self._create_surface()
 
+        
+        def get_top_of_grid(self):
 
+
+            return self.rect.top
         
         def update(self,point):
 
@@ -180,6 +184,7 @@ class Game:
 
 
         self.color_grid =pygame.sprite.GroupSingle(Game.ColorGrid(gap,w,gap))
+        self.top_of_grid = self.color_grid.sprite.get_top_of_grid()
 
 
 
@@ -283,6 +288,7 @@ class Game:
             self._draw_board()
             self.pegs.draw(screen)
             self.color_grid.draw(screen)
+            screen.blit(self.pick_piece_text,(2,self.top_of_grid - self.pick_piece_text.get_height()))
             pygame.display.update()
 
 
