@@ -15,6 +15,7 @@ pygame.display.set_caption("Mastermind")
 
 class Game:
 
+    
 
     colors = [BLUE,RED,YELLOW,GREEN,BLACK,WHITE]
     board_color = (162,98,80)
@@ -24,6 +25,69 @@ class Game:
     question_mark = pygame.image.load(os.path.join('images','question_mark.png')).convert_alpha()
     
     font = pygame.font.SysFont("calibri",40)
+
+
+    class Button(pygame.sprite.Sprite):
+        
+        button_font = pygame.font.SysFont("calibri",50)
+        def __init__(self,x,gap,button_text,button_color,text_color):
+            super().__init__()
+            
+        
+            text = self.button_font.render(button_text,True,text_color)
+
+            self.original_image = pygame.Surface(text.get_size())
+            
+            w,h = text.get_size()
+            self.big_image = pygame.Surface((w + 10,h + 10))
+            
+            images = (self.original_image,self.big_image)
+
+            for image in images:
+                image.fill(button_color)
+                image.blit(text,(image.get_width()//2- text.get_width()//2,image.get_height()//2 - text.get_height()//2))
+
+
+            y = SCREEN_HEIGHT - gap - self.original_image.get_height()
+            self.original_rect = self.original_image.get_rect(topleft=(x,y))
+            self.big_rect = self.big_image.get_rect(center=self.original_rect.center)
+
+
+            self.image,self.rect = self.original_image,self.original_rect
+
+            self.hovered_on = False
+
+
+        def update(self,point):
+
+            collided = self.is_hovered_on(point)
+
+            if collided and not self.hovered_on:
+                self.hovered_on = True
+                self.image = self.big_image
+                self.rect = self.big_rect
+            elif not collided and self.hovered_on:
+                self.hovered_on = False
+                self.image = self.original_image
+                self.rect = self.original_rect
+
+
+        
+        def is_hovered_on(self,point):
+            return self.rect.collidepoint(point)
+
+
+
+
+
+
+
+
+
+
+
+
+
     class PegSurface(pygame.sprite.Sprite):
 
         def __init__(self,x,y,size=30):
@@ -170,6 +234,7 @@ class Game:
         self.pick_piece_text = self.font.render("Pick Color Here",True,BLACK)
         
         self.current_square = [self.guesses,0]
+        self.current_row = [None] * self.code_length
         self._create_board_surface()
         self._create_peg_surfaces()
         
@@ -186,6 +251,7 @@ class Game:
         self.color_grid =pygame.sprite.GroupSingle(Game.ColorGrid(gap,w,gap))
         self.top_of_grid = self.color_grid.sprite.get_top_of_grid()
 
+        self.check_button = pygame.sprite.GroupSingle(Game.Button(self.board_rect.right + gap *2,gap,"CHECK",RED,BLACK))
 
 
         self._generate_code()
@@ -238,6 +304,10 @@ class Game:
         board_row,board_col = self.current_square
 
 
+
+        self.current_row[board_col] = color
+
+
         pygame.draw.circle(self.board_surface,color,(board_col * self.square_width + self.square_width//2,board_row * self.square_height + self.square_height//2),self.radius)
 
 
@@ -270,6 +340,10 @@ class Game:
                     color = self.color_grid.sprite.clicked_on(point)
                     if color:
                         self._place_piece(color)
+                    elif self.check_button.sprite.is_hovered_on(point):
+                        self._check()
+
+
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         self.current_square[1] = (self.current_square[1] - 1) % self.code_length
@@ -281,17 +355,25 @@ class Game:
             
 
             point = pygame.mouse.get_pos()
-
-            self.color_grid.update(point)
+            
+            
+            for sprite in (self.color_grid,self.check_button):
+                sprite.update(point)
 
             screen.fill(self.bg_color)
             self._draw_board()
             self.pegs.draw(screen)
             self.color_grid.draw(screen)
+            self.check_button.draw(screen)
             screen.blit(self.pick_piece_text,(2,self.top_of_grid - self.pick_piece_text.get_height()))
             pygame.display.update()
 
+    
+    def _check(self):
+        print(self.current_row)
 
+        self.current_square[0] -= 1
+        self.current_square[1] = 0
 
 
 
