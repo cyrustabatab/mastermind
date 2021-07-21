@@ -1,4 +1,4 @@
-import pygame,random,sys,os
+import pygame,random,sys,os,pdb
 from colors import *
 
 pygame.init()
@@ -97,12 +97,13 @@ class Game:
             self.image.fill(Game.board_color)
             self.rect = self.image.get_rect(topleft=(x,y))
             self.square_size = self.image.get_width()//2
-            radius = int(self.square_size * 0.75/2)
+            self.radius = int(self.square_size * 0.75/2)
             
             for row in range(2):
                 for col in range(2):
-                    pygame.draw.circle(self.image,Game.circle_color,(col * self.square_size + self.square_size//2,row * self.square_size + self.square_size//2),radius)
-    
+                    pygame.draw.circle(self.image,Game.circle_color,(col * self.square_size + self.square_size//2,row * self.square_size + self.square_size//2),self.radius)
+        def draw_color(self,row,col,color): 
+            pygame.draw.circle(self.image,color,(col * self.square_size + self.square_size//2,row * self.square_size + self.square_size//2),self.radius)
     class ColorGrid(pygame.sprite.Sprite):
 
         def __init__(self,x,width,bottom_gap):
@@ -229,7 +230,8 @@ class Game:
         self.question_mark = pygame.transform.scale(self.question_mark,(self.radius,self.radius))
         self.rows = guesses + 1
         self.cols = code_length
-
+        self.game_over = False
+        self._generate_code()
 
         self.pick_piece_text = self.font.render("Pick Color Here",True,BLACK)
         
@@ -254,7 +256,6 @@ class Game:
         self.check_button = pygame.sprite.GroupSingle(Game.Button(self.board_rect.right + gap *2,gap,"CHECK",RED,BLACK))
 
 
-        self._generate_code()
         self.play()
     
 
@@ -269,22 +270,26 @@ class Game:
         for row in range(self.rows):
             pygame.draw.line(self.board_surface,self.line_color,(0,row * self.square_height),(self.board_width,row * self.square_height),4 if row != 1 else 8)
             for col in range(self.cols):
-                pygame.draw.circle(self.board_surface,self.circle_color,(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
+                if row != 0:
+                    pygame.draw.circle(self.board_surface,self.circle_color,(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
+                else:
+                    pygame.draw.circle(self.board_surface,self.code[col],(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
         
-
         for i in range(self.code_length):
             self.board_surface.blit(self.question_mark,(i * self.square_width + self.square_width//2 - self.question_mark.get_width()//2,self.square_height//2 - self.question_mark.get_height()//2))
     
     def _create_peg_surfaces(self):
         self.pegs = pygame.sprite.Group()
+        
 
+        self.pegs_ordered = []
 
         for row in range(self.rows):
             if row == 0:
                 continue
-            for col in range(self.cols):
-                peg_surface= Game.PegSurface(self.board_rect.right,row * self.square_height + self.square_height//2 - 15)
-                self.pegs.add(peg_surface)
+            peg_surface= Game.PegSurface(self.board_rect.right,row * self.square_height + self.square_height//2 - 15)
+            self.pegs.add(peg_surface)
+            self.pegs_ordered.append(peg_surface)
 
         
 
@@ -315,10 +320,11 @@ class Game:
     def _generate_code(self):
 
 
-        self.colors_chosen = random.choices(self.colors,k=4)
+        self.code = random.sample(self.colors,k=self.code_length)
+        #self.code = random.choices(self.colors,k=4)
 
 
-        random.shuffle(self.colors_chosen)
+        random.shuffle(self.code)
 
 
 
@@ -367,10 +373,61 @@ class Game:
             self.check_button.draw(screen)
             screen.blit(self.pick_piece_text,(2,self.top_of_grid - self.pick_piece_text.get_height()))
             pygame.display.update()
+    
+
+    def _update_peg(self,key_pegs):
+
+
+        row = self.current_square[0]
+
+        peg = self.pegs_ordered[row - 1]
+
+        for i,color in enumerate(key_pegs):
+            row = i // 2
+            col = i % 2
+            peg.draw_color(row,col,key_pegs[i])
+    
+    def _reveal_code(self):
+
+    
+
+        row = 0
+        for col in range(self.code_length):
+            pygame.draw.circle(self.board_surface,self.code[col],(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
+
 
     
     def _check(self):
-        print(self.current_row)
+        key_pegs = []
+        
+        if self.code == self.current_row:
+            self._reveal_code()
+            print("YOU WIN")
+
+        code_copy = self.code.copy()
+        for i,(color_1,color_2) in enumerate(zip(self.code,self.current_row)):
+            if color_1 == color_2:
+                code_copy[i] = -1
+                key_pegs.append(RED)
+        
+
+        code_copy_2 = code_copy.copy()
+        print("USER",self.current_row)
+        print("CODE",code_copy)
+        for i,color in enumerate(self.current_row):
+            if code_copy[i] != -1:
+                if color in code_copy_2:
+                    index = code_copy_2.index(color) 
+                    code_copy_2[index] = -1
+                    key_pegs.append(WHITE)
+        
+
+        print("KEY PEGS",key_pegs) 
+
+        random.shuffle(key_pegs)
+        
+
+        self._update_peg(key_pegs)
 
         self.current_square[0] -= 1
         self.current_square[1] = 0
