@@ -30,7 +30,7 @@ class Game:
     class Button(pygame.sprite.Sprite):
         
         button_font = pygame.font.SysFont("calibri",50)
-        def __init__(self,x,gap,button_text,button_color,text_color):
+        def __init__(self,x,gap,button_text,button_color,text_color,bottom=True):
             super().__init__()
             
         
@@ -48,7 +48,10 @@ class Game:
                 image.blit(text,(image.get_width()//2- text.get_width()//2,image.get_height()//2 - text.get_height()//2))
 
 
-            y = SCREEN_HEIGHT - gap - self.original_image.get_height()
+            if bottom:
+                y = SCREEN_HEIGHT - gap - self.original_image.get_height()
+            else:
+                y = gap
             self.original_rect = self.original_image.get_rect(topleft=(x,y))
             self.big_rect = self.big_image.get_rect(center=self.original_rect.center)
 
@@ -253,7 +256,12 @@ class Game:
         self.color_grid =pygame.sprite.GroupSingle(Game.ColorGrid(gap,w,gap))
         self.top_of_grid = self.color_grid.sprite.get_top_of_grid()
 
-        self.check_button = pygame.sprite.GroupSingle(Game.Button(self.board_rect.right + gap *2,gap,"CHECK",RED,BLACK))
+        self.check_button = Game.Button(self.board_rect.right + gap *2,gap,"CHECK",RED,BLACK)
+
+        self.reset_button = Game.Button(self.board_rect.right + gap * 2,gap,"RESET",RED,BLACK,bottom=False)
+
+
+        self.buttons = pygame.sprite.Group(self.check_button,self.reset_button)
 
 
         self.play()
@@ -346,8 +354,10 @@ class Game:
                     color = self.color_grid.sprite.clicked_on(point)
                     if color:
                         self._place_piece(color)
-                    elif self.check_button.sprite.is_hovered_on(point):
+                    elif self.check_button.is_hovered_on(point):
                         self._check()
+                    elif self.reset_button.is_hovered_on(point):
+                        self._reset()
 
 
                 elif event.type == pygame.KEYDOWN:
@@ -361,19 +371,57 @@ class Game:
             
 
             point = pygame.mouse.get_pos()
+                
+            self.buttons.update(point)
+            self.color_grid.update(point)
             
-            
-            for sprite in (self.color_grid,self.check_button):
-                sprite.update(point)
 
             screen.fill(self.bg_color)
             self._draw_board()
             self.pegs.draw(screen)
             self.color_grid.draw(screen)
-            self.check_button.draw(screen)
+            #self.check_button.draw(screen)
+            self.buttons.draw(screen)
             screen.blit(self.pick_piece_text,(2,self.top_of_grid - self.pick_piece_text.get_height()))
             pygame.display.update()
     
+    
+
+    def _reveal_code(self):
+        row = 0
+        for col in range(self.code_length):
+            pygame.draw.circle(self.board_surface,self.code[col],(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
+
+
+    def _reset_board_and_pegs_surface(self):
+
+        
+        for row in range(self.current_square[0],self.rows):
+            for col in range(self.code_length):
+                pygame.draw.circle(self.board_surface,Game.circle_color,(col * self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
+
+
+        for peg in self.pegs_ordered:
+            for row in range(4):
+                for col in range(4):
+                    peg.draw_color(row,col,Game.circle_color)
+
+
+
+
+
+    def _reset(self):
+
+        self._generate_code()
+        
+        self._reset_board_and_pegs_surface()
+
+        self.current_square = [self.rows - 1,0]
+        self.current_row = [None] * self.code_length
+
+
+
+
 
     def _update_peg(self,key_pegs):
 
