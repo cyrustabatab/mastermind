@@ -11,6 +11,225 @@ screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 pygame.display.set_caption("Mastermind")
 
 
+BG_COLOR = (225,153,106)
+
+class Button(pygame.sprite.Sprite):
+    
+    button_font = pygame.font.SysFont("calibri",50)
+
+    def __init__(self,x,gap,button_text,button_color,text_color,button_width=None,button_height=None,bottom=True,centered=False,font=None):
+        super().__init__()
+        
+        
+
+
+
+        if not font:
+            text = self.button_font.render(button_text,True,text_color)
+        else:
+            text = font.render(button_text,True,text_color)
+        
+        
+        w,h = text.get_size()
+        w = button_width if button_width is not None else w
+        h = button_height if button_height is not None else h
+
+        self.original_image = pygame.Surface((w + 20,h + 20))
+        
+        self.big_image = pygame.Surface((w + 40,h + 40))
+        
+        
+        images = (self.original_image,self.big_image)
+
+        for image in images:
+            image.fill(button_color)
+            image.blit(text,(image.get_width()//2- text.get_width()//2,image.get_height()//2 - text.get_height()//2))
+
+        if centered:
+            x = SCREEN_WIDTH//2 - w//2
+            y = SCREEN_HEIGHT//2 - h//2
+        elif bottom:
+            y = SCREEN_HEIGHT - gap - self.original_image.get_height()
+        else:
+            y = gap
+        self.original_rect = self.original_image.get_rect(topleft=(x,y))
+        self.big_rect = self.big_image.get_rect(center=self.original_rect.center)
+
+
+        self.image,self.rect = self.original_image,self.original_rect
+
+        self.hovered_on = False
+
+
+    def update(self,point):
+
+        collided = self.is_hovered_on(point)
+
+        if collided and not self.hovered_on:
+            self.hovered_on = True
+            self.image = self.big_image
+            self.rect = self.big_rect
+        elif not collided and self.hovered_on:
+            self.hovered_on = False
+            self.image = self.original_image
+            self.rect = self.original_rect
+
+
+        
+    def is_hovered_on(self,point):
+        return self.rect.collidepoint(point)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Menu:
+
+    menu_font = pygame.font.SysFont("calibri",50,bold=True)
+    def __init__(self):
+
+
+        self.title_text = self.menu_font.render("MASTERMIND",True,BLACK)
+        top_gap = 50
+        self.title_text_rect = self.title_text.get_rect(center=(SCREEN_WIDTH//2,top_gap + self.title_text.get_height()//2))
+
+        
+        self._create_buttons()
+        
+        
+
+
+
+        self._display()
+    
+
+    def _create_buttons(self):
+        start_game_button = Button(None,None,"START",RED,BLACK,centered=True,font=self.menu_font) 
+        start_game_button = Button(None,None,"START",RED,BLACK,centered=True,font=self.menu_font) 
+
+        
+
+        difficulty_buttons  = pygame.sprite.Group()
+        sample_text = self.menu_font.render("NORMAL",True,BLACK)
+
+        button_width = sample_text.get_width() + 20
+        button_height  = sample_text.get_height() + 20
+
+
+        gap = (SCREEN_HEIGHT - button_height * 3)//4
+        texts = ('NORMAL',"HARD","EXPERT")
+
+        for i in range(3):
+            button = Button(SCREEN_WIDTH//2 - button_width//2, gap + i * (gap + button_height),texts[i],RED,BLACK,bottom=False,button_width= button_width,button_height=button_height,font=self.menu_font)
+            difficulty_buttons.add(button)
+
+
+
+
+
+
+
+
+        self.buttons = {'start_screen': pygame.sprite.GroupSingle(start_game_button),
+                        'difficulty_screen': difficulty_buttons
+                                    
+
+                }
+
+    def _difficulty_screen(self):
+
+
+        buttons = self.buttons['difficulty_screen']
+        
+
+
+        difficulty_map = {0:'normal',1: 'hard',2: 'expert'}
+
+        while True:
+
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    point = pygame.mouse.get_pos()
+                    for i,button in enumerate(buttons):
+                        if button.is_hovered_on(point):
+                            Game()
+
+
+            
+        
+
+            point = pygame.mouse.get_pos()
+            buttons.update(point)
+
+            screen.fill(BG_COLOR)
+            buttons.draw(screen)
+            pygame.display.update()
+
+
+
+
+
+
+
+
+    def _display(self):
+
+        
+
+        buttons = self.buttons['start_screen']
+
+        while True:
+
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        Game()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    point = pygame.mouse.get_pos()
+                    if buttons.sprite.is_hovered_on(point):
+                        self._difficulty_screen()
+
+
+
+            
+        
+
+            point = pygame.mouse.get_pos()
+            buttons.update(point)
+
+            screen.fill(BG_COLOR)
+            screen.blit(self.title_text,self.title_text_rect)
+            buttons.draw(screen)
+            pygame.display.update()
+
+
+
+
+
+
 
 
 class Game:
@@ -25,68 +244,6 @@ class Game:
     question_mark = pygame.image.load(os.path.join('images','question_mark.png')).convert_alpha()
     
     font = pygame.font.SysFont("calibri",40)
-
-
-    class Button(pygame.sprite.Sprite):
-        
-        button_font = pygame.font.SysFont("calibri",50)
-        def __init__(self,x,gap,button_text,button_color,text_color,bottom=True):
-            super().__init__()
-            
-        
-            text = self.button_font.render(button_text,True,text_color)
-
-            self.original_image = pygame.Surface(text.get_size())
-            
-            w,h = text.get_size()
-            self.big_image = pygame.Surface((w + 10,h + 10))
-            
-            images = (self.original_image,self.big_image)
-
-            for image in images:
-                image.fill(button_color)
-                image.blit(text,(image.get_width()//2- text.get_width()//2,image.get_height()//2 - text.get_height()//2))
-
-
-            if bottom:
-                y = SCREEN_HEIGHT - gap - self.original_image.get_height()
-            else:
-                y = gap
-            self.original_rect = self.original_image.get_rect(topleft=(x,y))
-            self.big_rect = self.big_image.get_rect(center=self.original_rect.center)
-
-
-            self.image,self.rect = self.original_image,self.original_rect
-
-            self.hovered_on = False
-
-
-        def update(self,point):
-
-            collided = self.is_hovered_on(point)
-
-            if collided and not self.hovered_on:
-                self.hovered_on = True
-                self.image = self.big_image
-                self.rect = self.big_rect
-            elif not collided and self.hovered_on:
-                self.hovered_on = False
-                self.image = self.original_image
-                self.rect = self.original_rect
-
-
-        
-        def is_hovered_on(self,point):
-            return self.rect.collidepoint(point)
-
-
-
-
-
-
-
-
-
 
 
 
@@ -138,8 +295,10 @@ class Game:
                 y_rel = point[1] - self.rect.y
 
 
-                row = (y_rel -1) //self.square_size
-                col = (x_rel - 1)//self.square_size
+                row = (y_rel - 2) //self.square_size
+                col = (x_rel - 2)//self.square_size
+                print(row)
+                print(col)
                 
                 index = row * self.cols + col
                 pygame.draw.circle(self.image,Game.colors[index],(col * self.square_size + self.square_size//2,row * self.square_size + self.square_size//2),self.square_size//2)
@@ -220,7 +379,7 @@ class Game:
 
             
 
-    def __init__(self,code_length=4,guesses=10,duplicates=False):
+    def __init__(self,code_length=4,guesses=10,duplicates=False,blanks=False,mode=1):
         
         self.guesses = guesses 
         self.code_length = code_length 
@@ -235,6 +394,10 @@ class Game:
         self.cols = code_length
         self.game_over = False
         self._generate_code()
+        self.font.set_bold(True)
+        self.win_text = self.font.render("YOU WIN",True,GREEN)
+        self.lose_text = self.font.render("YOU LOSE",True,RED)
+        self.font.set_bold(False)
 
         self.pick_piece_text = self.font.render("Pick Color Here",True,BLACK)
         
@@ -256,9 +419,9 @@ class Game:
         self.color_grid =pygame.sprite.GroupSingle(Game.ColorGrid(gap,w,gap))
         self.top_of_grid = self.color_grid.sprite.get_top_of_grid()
 
-        self.check_button = Game.Button(self.board_rect.right + gap *2,gap,"CHECK",RED,BLACK)
+        self.check_button = Button(self.board_rect.right + gap *2,gap,"CHECK",RED,BLACK)
 
-        self.reset_button = Game.Button(self.board_rect.right + gap * 2,gap,"RESET",RED,BLACK,bottom=False)
+        self.reset_button = Button(self.board_rect.right + gap * 2,gap,"RESET",RED,BLACK,bottom=False)
 
 
         self.buttons = pygame.sprite.Group(self.check_button,self.reset_button)
@@ -278,7 +441,7 @@ class Game:
         for row in range(self.rows):
             pygame.draw.line(self.board_surface,self.line_color,(0,row * self.square_height),(self.board_width,row * self.square_height),4 if row != 1 else 8)
             for col in range(self.cols):
-                if row != 0:
+                if row != -1:
                     pygame.draw.circle(self.board_surface,self.circle_color,(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
                 else:
                     pygame.draw.circle(self.board_surface,self.code[col],(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
@@ -306,8 +469,10 @@ class Game:
 
 
         screen.blit(self.board_surface,self.board_rect)
-        row,col = self.current_square
-        pygame.draw.rect(screen,RED,(self.board_rect.left + col * self.square_width,row * self.square_height,self.square_width,self.square_height),5)
+
+        if not self.game_over:
+            row,col = self.current_square
+            pygame.draw.rect(screen,RED,(self.board_rect.left + col * self.square_width,row * self.square_height,self.square_width,self.square_height),5)
 
 
     
@@ -319,6 +484,9 @@ class Game:
 
 
         self.current_row[board_col] = color
+
+
+        self.current_square[1] = min(self.current_square[1] + 1,self.code_length - 1)
 
 
         pygame.draw.circle(self.board_surface,color,(board_col * self.square_width + self.square_width//2,board_row * self.square_height + self.square_height//2),self.radius)
@@ -349,13 +517,25 @@ class Game:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    point = pygame.mouse.get_pos()
 
-                    color = self.color_grid.sprite.clicked_on(point)
-                    if color:
-                        self._place_piece(color)
-                    elif self.check_button.is_hovered_on(point):
-                        self._check()
+
+
+                    point = pygame.mouse.get_pos()
+                    
+
+                    if not self.game_over:
+                        color = self.color_grid.sprite.clicked_on(point)
+                        if color:
+                            self._place_piece(color)
+                        elif self.check_button.is_hovered_on(point):
+                            self.game_over = self._check()
+                            if self.game_over:
+                                self._reveal_code()
+                                if self.current_square[0] == 0:
+                                    game_over_text = self.lose_text
+                                else:
+                                    game_over_text = self.win_text
+
                     elif self.reset_button.is_hovered_on(point):
                         self._reset()
 
@@ -373,10 +553,14 @@ class Game:
             point = pygame.mouse.get_pos()
                 
             self.buttons.update(point)
+
             self.color_grid.update(point)
             
 
             screen.fill(self.bg_color)
+
+            if self.game_over:
+                screen.blit(game_over_text,(self.board_rect.left//2 - game_over_text.get_width()//2,SCREEN_HEIGHT//2 - game_over_text.get_height()//2))
             self._draw_board()
             self.pegs.draw(screen)
             self.color_grid.draw(screen)
@@ -391,8 +575,14 @@ class Game:
         row = 0
         for col in range(self.code_length):
             pygame.draw.circle(self.board_surface,self.code[col],(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
+    
+    def _hide_code(self):
+        row = 0
+        for col in range(self.code_length):
+            pygame.draw.circle(self.board_surface,Game.circle_color,(col *self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
 
-
+        for i in range(self.code_length):
+            self.board_surface.blit(self.question_mark,(i * self.square_width + self.square_width//2 - self.question_mark.get_width()//2,self.square_height//2 - self.question_mark.get_height()//2))
     def _reset_board_and_pegs_surface(self):
 
         
@@ -406,8 +596,8 @@ class Game:
                 for col in range(4):
                     peg.draw_color(row,col,Game.circle_color)
 
-
-
+        
+        self._hide_code()
 
 
     def _reset(self):
@@ -418,6 +608,8 @@ class Game:
 
         self.current_square = [self.rows - 1,0]
         self.current_row = [None] * self.code_length
+        self.game_over = False
+
 
 
 
@@ -449,8 +641,7 @@ class Game:
         key_pegs = []
         
         if self.code == self.current_row:
-            self._reveal_code()
-            print("YOU WIN")
+            return True
 
         code_copy = self.code.copy()
         for i,(color_1,color_2) in enumerate(zip(self.code,self.current_row)):
@@ -460,7 +651,6 @@ class Game:
         
 
         code_copy_2 = code_copy.copy()
-        print("USER",self.current_row)
         print("CODE",code_copy)
         for i,color in enumerate(self.current_row):
             if code_copy[i] != -1:
@@ -468,22 +658,22 @@ class Game:
                     index = code_copy_2.index(color) 
                     code_copy_2[index] = -1
                     key_pegs.append(WHITE)
-        
-
-        print("KEY PEGS",key_pegs) 
 
         random.shuffle(key_pegs)
-        
 
         self._update_peg(key_pegs)
 
         self.current_square[0] -= 1
         self.current_square[1] = 0
+        self.current_row = [None] * self.code_length
+
+        return True if self.current_square[0] == 0 else False
 
 
 
 if __name__ == "__main__":
-    Game()
+    Menu()
+#    Game()
 
 
 
