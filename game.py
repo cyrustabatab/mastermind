@@ -69,10 +69,12 @@ class Button(pygame.sprite.Sprite):
             self.hovered_on = True
             self.image = self.big_image
             self.rect = self.big_rect
+            return False
         elif not collided and self.hovered_on:
             self.hovered_on = False
             self.image = self.original_image
             self.rect = self.original_rect
+            return True
 
 
         
@@ -156,8 +158,16 @@ class Menu:
 
         buttons = self.buttons['difficulty_screen']
         
+        
 
+        texts = ('UNIQUE COLORS ONLY',"DUPLICATE COLORS ALLOWED","DUPLICATES AND BLANKS ALLOWED")
+        
 
+        button_texts = []
+        for text in texts:
+            button_texts.append(self.menu_font.render(text,True,BLACK))
+
+        
         difficulty_map = {0:'normal',1: 'hard',2: 'expert'}
 
         while True:
@@ -171,17 +181,30 @@ class Menu:
                     point = pygame.mouse.get_pos()
                     for i,button in enumerate(buttons):
                         if button.is_hovered_on(point):
-                            Game()
+                            if i == 2:
+                                return True,True
+                            elif i == 1:
+                                return True,False
+                            return False,False
 
 
             
         
 
             point = pygame.mouse.get_pos()
-            buttons.update(point)
+            current_text = None
+            for i,button in enumerate(buttons):
+                button.update(point)
+                if button.is_hovered_on(point):
+                    current_text = button_texts[i]
+                    break
 
+        
             screen.fill(BG_COLOR)
+
             buttons.draw(screen)
+            if current_text:
+                screen.blit(current_text,(SCREEN_WIDTH//2 - current_text.get_width()//2,5))
             pygame.display.update()
 
 
@@ -210,7 +233,8 @@ class Menu:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     point = pygame.mouse.get_pos()
                     if buttons.sprite.is_hovered_on(point):
-                        self._difficulty_screen()
+                        duplicates,blanks = self._difficulty_screen()
+                        Game(duplicates=duplicates,blanks=blanks)
 
 
 
@@ -393,6 +417,10 @@ class Game:
         self.rows = guesses + 1
         self.cols = code_length
         self.game_over = False
+        self.duplicates =duplicates
+        description = "NO DUPLICATES" if not duplicates else "DUPLICATES"
+        description += " NO BLANKS" if not blanks else " BLANKS"
+        pygame.display.set_caption(f"MASTERMIND {description}")
         self._generate_code()
         self.font.set_bold(True)
         self.win_text = self.font.render("YOU WIN",True,GREEN)
@@ -496,8 +524,10 @@ class Game:
     def _generate_code(self):
 
 
-        self.code = random.sample(self.colors,k=self.code_length)
-        #self.code = random.choices(self.colors,k=4)
+        if not self.duplicates:
+            self.code = random.sample(self.colors,k=self.code_length)
+        else:
+            self.code = random.choices(self.colors,k=4)
 
 
         random.shuffle(self.code)
