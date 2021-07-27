@@ -2,6 +2,7 @@ import pygame,random,sys,os,pdb
 from colors import *
 
 pygame.init()
+pygame.mixer.init()
 
 SCREEN_HEIGHT=640
 SCREEN_WIDTH = 800
@@ -16,7 +17,6 @@ BG_COLOR = (225,153,106)
 class Button(pygame.sprite.Sprite):
     
     button_font = pygame.font.SysFont("calibri",50)
-
     def __init__(self,x,gap,button_text,button_color,text_color,button_width=None,button_height=None,bottom=True,centered=False,font=None):
         super().__init__()
         
@@ -59,6 +59,9 @@ class Button(pygame.sprite.Sprite):
         self.image,self.rect = self.original_image,self.original_rect
 
         self.hovered_on = False
+    
+
+
 
 
     def update(self,point):
@@ -103,6 +106,7 @@ class Button(pygame.sprite.Sprite):
 class Menu:
 
     menu_font = pygame.font.SysFont("calibri",50,bold=True)
+    main_menu_song = os.path.join('sounds','music.ogg') 
     def __init__(self):
 
 
@@ -115,10 +119,14 @@ class Menu:
         
         
 
-
+        self._load_and_play()
 
         self._display()
     
+    def _load_and_play(self):
+        #pygame.mixer.Sound(self.main_menu_song).play()
+        pygame.mixer.music.load(self.main_menu_song)
+        pygame.mixer.music.play(-1)
 
     def _create_buttons(self):
         start_game_button = Button(None,None,"START",RED,BLACK,centered=True,font=self.menu_font) 
@@ -418,6 +426,7 @@ class Game:
         self.cols = code_length
         self.game_over = False
         self.duplicates =duplicates
+        self.blanks = blanks
         description = "NO DUPLICATES" if not duplicates else "DUPLICATES"
         description += " NO BLANKS" if not blanks else " BLANKS"
         pygame.display.set_caption(f"MASTERMIND {description}")
@@ -522,8 +531,11 @@ class Game:
 
 
     def _generate_code(self):
+        
 
-
+        if self.blanks:
+            self.colors.append(None)
+        
         if not self.duplicates:
             self.code = random.sample(self.colors,k=self.code_length)
         else:
