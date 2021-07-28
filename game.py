@@ -1,4 +1,5 @@
 import pygame,random,sys,os,pdb
+import time
 from colors import *
 
 pygame.init()
@@ -107,6 +108,9 @@ class Menu:
 
     menu_font = pygame.font.SysFont("calibri",50,bold=True)
     main_menu_song = os.path.join('sounds','music.ogg') 
+    MIN_CODE_LENGTH = 4
+    MAX_CODE_LENGTH = 10
+
     def __init__(self):
 
 
@@ -148,7 +152,12 @@ class Menu:
             button = Button(SCREEN_WIDTH//2 - button_width//2, gap + i * (gap + button_height),texts[i],RED,BLACK,bottom=False,button_width= button_width,button_height=button_height,font=self.menu_font)
             difficulty_buttons.add(button)
 
+        
+    
 
+
+    
+        enter_button  = Button(SCREEN_WIDTH//2 - button_width//2,20,"ENTER",RED,BLACK,button_width=button_width,button_height=button_height,font=self.menu_font)
 
 
 
@@ -156,10 +165,155 @@ class Menu:
 
 
         self.buttons = {'start_screen': pygame.sprite.GroupSingle(start_game_button),
-                        'difficulty_screen': difficulty_buttons
+                        'difficulty_screen': difficulty_buttons,
+                        'enter_button': pygame.sprite.GroupSingle(enter_button)
                                     
 
                 }
+    
+
+
+    def _get_user_input(self,label,min_value,max_value):
+
+        self.menu_font.set_underline(True)
+        label_text = self.menu_font.render(f"Code Length({min_value}-{max_value})",True,BLACK)
+        self.menu_font.set_underline(False)
+        gap_from_center = 20
+        label_text_rect= label_text.get_rect(center=(SCREEN_WIDTH//2,SCREEN_HEIGHT//2 - gap_from_center - label_text.get_height()))
+        buttons = self.buttons['enter_button'] 
+        
+
+        invalid_text = self.menu_font.render(f"Number has to be between {min_value} and {max_value}",True,BLACK)
+
+        
+        invalid_text_rect = invalid_text.get_rect(center=(SCREEN_WIDTH//2,buttons.sprite.rect.top - 20 - invalid_text.get_height()//2))
+
+
+
+        
+
+        def check_value():
+
+            if value:
+                last = value[-1]
+                if last == '|':
+                    true_value = value[:-1]
+                else:
+                    true_value = value
+                true_value = int(true_value)
+                return min_value <= true_value <= max_value
+            return False
+
+
+        def update_value(character_to_add=None,remove=False):
+            nonlocal value,value_text,value_text_rect
+            
+            if remove:
+                if value and value[-1] == '|':
+                    value = value[:-2] + '|'
+                else:
+                    value = value[:-1]
+            elif character_to_add:
+                if value and value[-1] == '|':
+                    value = value[:-1] + character_to_add + '|'
+                else:
+                    value += character_to_add
+
+            elif value:
+                last = value[-1]
+
+                if last == '|':
+                    value = value[:-1]
+                else:
+                    value += '|'
+            else:
+                value += '|'
+
+            value_text = self.menu_font.render(value,True,BLACK)
+            temp_value = value_text
+            if value and value[-1] == '|':
+                temp_value = self.menu_font.render(value[:-1],True,BLACK)
+
+            value_text_rect = temp_value.get_rect(center=(SCREEN_WIDTH//2,SCREEN_HEIGHT//2)) 
+
+            
+        true_length = lambda val: len(val[:-1]) if val and val[-1] == '|' else len(val)
+
+        value = '4'
+        
+        value_text = self.menu_font.render(value,True,BLACK)
+        value_text_rect = value_text.get_rect(center=(SCREEN_WIDTH//2,SCREEN_HEIGHT//2))
+        FLICKER_EVENT = pygame.USEREVENT + 1
+        pygame.time.set_timer(FLICKER_EVENT,250)
+        
+        backspace_start_time = None
+        invalid = False
+        invalid_start = None
+        while True:
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == FLICKER_EVENT:
+                    update_value()
+                elif event.type == pygame.KEYDOWN:
+                    if true_length(value) <= 1 and pygame.K_0 <= event.key <= pygame.K_9:
+                        update_value(character_to_add=chr(event.key))
+                    elif event.key == pygame.K_BACKSPACE:
+                        update_value(remove=True)
+                        backspace_start_time = time.time()
+                elif backspace_start_time and event.type == pygame.KEYUP and event.key == pygame.K_BACKSPACE:
+                    backspace_start_time = None
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    point = pygame.mouse.get_pos()
+
+                    if buttons.sprite.is_hovered_on(point):
+                        if check_value():
+                            return
+                        invalid_start = time.time()
+                        print("Invalid number")
+
+
+
+        
+            point = pygame.mouse.get_pos()
+
+            buttons.update(point)
+
+            if backspace_start_time or invalid_start: 
+                current_time =  time.time()
+                if backspace_start_time:
+                    if current_time - backspace_start_time >= 0.25:
+                        update_value(remove=True)
+                        backspace_start_time = current_time
+                else:
+                    if current_time - invalid_start >= 1:
+                        invalid_start = None
+
+
+            
+              
+
+            screen.fill(BG_COLOR)
+            screen.blit(label_text,label_text_rect)
+            screen.blit(value_text,value_text_rect)
+            if invalid_start:
+                screen.blit(invalid_text,invalid_text_rect)
+            buttons.draw(screen)
+            pygame.display.update()
+
+
+    def _get_code_length(self):
+
+
+        
+        self._get_user_input("Code Length",self.MIN_CODE_LENGTH,self.MAX_CODE_LENGTH)
+
+
+
+
+
 
     def _difficulty_screen(self):
 
@@ -242,6 +396,7 @@ class Menu:
                     point = pygame.mouse.get_pos()
                     if buttons.sprite.is_hovered_on(point):
                         duplicates,blanks = self._difficulty_screen()
+                        code_length = self._get_code_length()
                         Game(duplicates=duplicates,blanks=blanks)
 
 
