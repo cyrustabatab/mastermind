@@ -110,6 +110,8 @@ class Menu:
     main_menu_song = os.path.join('sounds','music.ogg') 
     MIN_CODE_LENGTH = 4
     MAX_CODE_LENGTH = 10
+    MIN_GUESSES = 8
+    MAX_GUESSES = 20
 
     def __init__(self):
 
@@ -173,10 +175,10 @@ class Menu:
     
 
 
-    def _get_user_input(self,label,min_value,max_value):
+    def _get_user_input(self,label,min_value,max_value,default_value):
 
         self.menu_font.set_underline(True)
-        label_text = self.menu_font.render(f"Code Length({min_value}-{max_value})",True,BLACK)
+        label_text = self.menu_font.render(f"{label}({min_value}-{max_value})",True,BLACK)
         self.menu_font.set_underline(False)
         gap_from_center = 20
         label_text_rect= label_text.get_rect(center=(SCREEN_WIDTH//2,SCREEN_HEIGHT//2 - gap_from_center - label_text.get_height()))
@@ -201,7 +203,8 @@ class Menu:
                 else:
                     true_value = value
                 true_value = int(true_value)
-                return min_value <= true_value <= max_value
+                if min_value <= true_value <= max_value:
+                    return true_value
             return False
 
 
@@ -239,7 +242,7 @@ class Menu:
             
         true_length = lambda val: len(val[:-1]) if val and val[-1] == '|' else len(val)
 
-        value = '4'
+        value = str(default_value)
         
         value_text = self.menu_font.render(value,True,BLACK)
         value_text_rect = value_text.get_rect(center=(SCREEN_WIDTH//2,SCREEN_HEIGHT//2))
@@ -269,8 +272,9 @@ class Menu:
                     point = pygame.mouse.get_pos()
 
                     if buttons.sprite.is_hovered_on(point):
-                        if check_value():
-                            return
+                        value = check_value()
+                        if value:
+                            return value
                         invalid_start = time.time()
                         print("Invalid number")
 
@@ -308,10 +312,11 @@ class Menu:
 
 
         
-        self._get_user_input("Code Length",self.MIN_CODE_LENGTH,self.MAX_CODE_LENGTH)
+        return self._get_user_input("Code Length",self.MIN_CODE_LENGTH,self.MAX_CODE_LENGTH,4)
 
 
-
+    def _get_guesses(self):
+        return self._get_user_input("Number of Guesses",self.MIN_GUESSES,self.MAX_GUESSES,8)
 
 
 
@@ -397,7 +402,8 @@ class Menu:
                     if buttons.sprite.is_hovered_on(point):
                         duplicates,blanks = self._difficulty_screen()
                         code_length = self._get_code_length()
-                        Game(duplicates=duplicates,blanks=blanks)
+                        guesses = self._get_guesses()
+                        Game(code_length=code_length,duplicates=duplicates,blanks=blanks)
 
 
 
@@ -437,19 +443,26 @@ class Game:
 
     class PegSurface(pygame.sprite.Sprite):
 
-        def __init__(self,x,y,size=30):
+        def __init__(self,x,y,guesses,square_size=15,peg_rows=2,peg_cols=2):
             super().__init__()
-
-            self.image = pygame.Surface((size,size))
-            self.image.fill(Game.board_color)
-            self.rect = self.image.get_rect(topleft=(x,y))
-            self.square_size = self.image.get_width()//2
-            self.radius = int(self.square_size * 0.75/2)
             
-            for row in range(2):
-                for col in range(2):
+
+            
+            self.image = pygame.Surface((square_size * peg_cols,square_size * 2))
+            self.image.fill(Game.board_color)
+            self.square_size = square_size
+            self.radius = int(self.square_size * 0.75/2)
+            self.rect = self.image.get_rect(topleft=(x,y))
+            for row in range(peg_rows):
+                for col in range(peg_cols):
+                    if peg_cols * row + col + 1> guesses:
+                        break
                     pygame.draw.circle(self.image,Game.circle_color,(col * self.square_size + self.square_size//2,row * self.square_size + self.square_size//2),self.radius)
+                else:
+                    continue
+                break
         def draw_color(self,row,col,color): 
+
             pygame.draw.circle(self.image,color,(col * self.square_size + self.square_size//2,row * self.square_size + self.square_size//2),self.radius)
     class ColorGrid(pygame.sprite.Sprite):
 
@@ -593,6 +606,8 @@ class Game:
 
         self.pick_piece_text = self.font.render("Pick Color Here",True,BLACK)
         
+        self.peg_rows =2 
+        self.peg_cols = self.code_length//2 if code_length %2 == 0 else  code_length//2 + 1
         self.current_square = [self.guesses,0]
         self.current_row = [None] * self.code_length
         self._create_board_surface()
@@ -650,7 +665,7 @@ class Game:
         for row in range(self.rows):
             if row == 0:
                 continue
-            peg_surface= Game.PegSurface(self.board_rect.right,row * self.square_height + self.square_height//2 - 15)
+            peg_surface= Game.PegSurface(self.board_rect.right,row * self.square_height + self.square_height//2 - 15,self.code_length,peg_rows=self.peg_rows,peg_cols=self.peg_cols)
             self.pegs.add(peg_surface)
             self.pegs_ordered.append(peg_surface)
 
@@ -687,7 +702,7 @@ class Game:
 
     def _generate_code(self):
         
-
+        
         if self.blanks:
             self.colors.append(None)
         
@@ -818,10 +833,10 @@ class Game:
         row = self.current_square[0]
 
         peg = self.pegs_ordered[row - 1]
-
         for i,color in enumerate(key_pegs):
-            row = i // 2
-            col = i % 2
+
+            row = i // self.peg_cols
+            col = i % self.peg_cols
             peg.draw_color(row,col,key_pegs[i])
     
     def _reveal_code(self):
