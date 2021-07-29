@@ -107,7 +107,7 @@ class Button(pygame.sprite.Sprite):
 class Menu:
 
     menu_font = pygame.font.SysFont("calibri",50,bold=True)
-    main_menu_song = os.path.join('sounds','music.ogg') 
+    main_menu_song = os.path.join('sounds','mainmenu.ogg') 
     MIN_CODE_LENGTH = 4
     MAX_CODE_LENGTH = 10
     MIN_GUESSES = 8
@@ -249,6 +249,12 @@ class Menu:
         FLICKER_EVENT = pygame.USEREVENT + 1
         pygame.time.set_timer(FLICKER_EVENT,250)
         
+        
+        def start_timer():
+            nonlocal invalid_start
+            invalid_start = time.time()
+
+        
         backspace_start_time = None
         invalid = False
         invalid_start = None
@@ -266,6 +272,11 @@ class Menu:
                     elif event.key == pygame.K_BACKSPACE:
                         update_value(remove=True)
                         backspace_start_time = time.time()
+                    elif event.key == pygame.K_RETURN:
+                        value = check_value()
+                        if value:
+                            return value
+                        start_timer()
                 elif backspace_start_time and event.type == pygame.KEYUP and event.key == pygame.K_BACKSPACE:
                     backspace_start_time = None
                 elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -275,8 +286,7 @@ class Menu:
                         value = check_value()
                         if value:
                             return value
-                        invalid_start = time.time()
-                        print("Invalid number")
+                        start_timer()
 
 
 
@@ -404,6 +414,7 @@ class Menu:
                         code_length = self._get_code_length()
                         guesses = self._get_guesses()
                         Game(code_length=code_length,duplicates=duplicates,blanks=blanks)
+                        self._load_and_play()
 
 
 
@@ -437,6 +448,9 @@ class Game:
     question_mark = pygame.image.load(os.path.join('images','question_mark.png')).convert_alpha()
     
     font = pygame.font.SysFont("calibri",40)
+
+
+    game_song = os.path.join('sounds','music.ogg')
 
 
 
@@ -539,17 +553,6 @@ class Game:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
     
         def _create_surface(self):
 
@@ -634,8 +637,13 @@ class Game:
         self.buttons = pygame.sprite.Group(self.check_button,self.reset_button)
 
 
+        self._load_and_play()
         self.play()
     
+    def _load_and_play(self):
+
+        pygame.mixer.music.load(self.game_song)
+        pygame.mixer.music.play(-1)
 
     def _create_board_surface(self):
         self.board_surface = pygame.Surface((self.board_width,SCREEN_HEIGHT))
