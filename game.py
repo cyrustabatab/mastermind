@@ -6,7 +6,7 @@ pygame.init()
 pygame.mixer.init()
 
 SCREEN_HEIGHT=640
-SCREEN_WIDTH = 800
+SCREEN_WIDTH = 900
 screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
 
 
@@ -190,9 +190,8 @@ class Menu:
         
         invalid_text_rect = invalid_text.get_rect(center=(SCREEN_WIDTH//2,buttons.sprite.rect.top - 20 - invalid_text.get_height()//2))
 
-
-
         
+
 
         def check_value():
 
@@ -465,6 +464,7 @@ class Game:
             self.image = pygame.Surface((square_size * peg_cols,square_size * 2))
             self.image.fill(Game.board_color)
             self.square_size = square_size
+
             self.radius = int(self.square_size * 0.75/2)
             self.rect = self.image.get_rect(topleft=(x,y))
             for row in range(peg_rows):
@@ -511,8 +511,6 @@ class Game:
 
                 row = (y_rel - 2) //self.square_size
                 col = (x_rel - 2)//self.square_size
-                print(row)
-                print(col)
                 
                 index = row * self.cols + col
                 pygame.draw.circle(self.image,Game.colors[index],(col * self.square_size + self.square_size//2,row * self.square_size + self.square_size//2),self.square_size//2)
@@ -578,22 +576,22 @@ class Game:
 
 
 
-
+    MAX_GUESS_DISPLAY = 10
 
             
 
-    def __init__(self,code_length=4,guesses=10,duplicates=False,blanks=False,mode=1):
+    def __init__(self,code_length=4,guesses=11,duplicates=False,blanks=False,mode=1):
         
         self.guesses = guesses 
         self.code_length = code_length 
-        self.square_height = SCREEN_HEIGHT// (guesses + 1)
         self.board_width = 300
         self.square_width = self.board_width//self.code_length
         
-        self.radius = int(self.square_height * .75/2)
 
+        self.rows = min(guesses + 1,self.MAX_GUESS_DISPLAY + 1)
+        self.square_height = SCREEN_HEIGHT// (self.rows)
+        self.radius = int(self.square_height * .75/2)
         self.question_mark = pygame.transform.scale(self.question_mark,(self.radius,self.radius))
-        self.rows = guesses + 1
         self.cols = code_length
         self.game_over = False
         self.duplicates =duplicates
@@ -609,12 +607,16 @@ class Game:
 
         self.pick_piece_text = self.font.render("Pick Color Here",True,BLACK)
         
+        self.all_guesses = []
+        self.start_guess_display = 0
+
         self.peg_rows =2 
         self.peg_cols = self.code_length//2 if code_length %2 == 0 else  code_length//2 + 1
-        self.current_square = [self.guesses,0]
+        self.current_square = [self.rows - 1,0]
         self.current_row = [None] * self.code_length
         self._create_board_surface()
         self._create_peg_surfaces()
+        self._create_guesses_text()
         
 
         
@@ -640,10 +642,38 @@ class Game:
         self._load_and_play()
         self.play()
     
+
+    def _create_guesses_text(self):
+
+        self.texts = []
+        for i in range(1,self.guesses + 1):
+            text = self.font.render(str(i),True,RED)
+            self.texts.append(text)
     def _load_and_play(self):
 
         pygame.mixer.music.load(self.game_song)
         pygame.mixer.music.play(-1)
+    
+
+    def _redraw_board(self):
+
+        
+        print(self.all_guesses)
+        print(self.start_guess_display)
+        for i in range(self.start_guess_display,len(self.all_guesses)):
+            row = self.rows - i 
+            
+            guess_code = self.all_guesses[i]
+            for col in range(self.cols):
+            
+                pygame.draw.circle(self.board_surface,guess_code[col] if guess_code[col] is not None else self.circle_color,(col * self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
+
+
+
+
+
+
+
 
     def _create_board_surface(self):
         self.board_surface = pygame.Surface((self.board_width,SCREEN_HEIGHT))
@@ -651,6 +681,8 @@ class Game:
         self.board_rect = self.board_surface.get_rect(midtop=(SCREEN_WIDTH//2,0))
         
         
+
+
 
 
         for row in range(self.rows):
@@ -678,6 +710,8 @@ class Game:
             self.pegs_ordered.append(peg_surface)
 
         
+    
+    
 
 
     def _draw_board(self):
@@ -688,6 +722,21 @@ class Game:
         if not self.game_over:
             row,col = self.current_square
             pygame.draw.rect(screen,RED,(self.board_rect.left + col * self.square_width,row * self.square_height,self.square_width,self.square_height),5)
+
+        
+        
+        
+        for i in range(self.MAX_GUESS_DISPLAY):
+            guess_text = self.texts[self.start_guess_display + i]
+            row = self.rows - 1 - i
+            screen.blit(guess_text,(self.board_rect.left - 5 - guess_text.get_width(),row * self.square_height + self.square_height//2 - guess_text.get_height()//2))
+
+
+
+
+
+
+
 
 
     
@@ -786,7 +835,7 @@ class Game:
             self.color_grid.draw(screen)
             #self.check_button.draw(screen)
             self.buttons.draw(screen)
-            screen.blit(self.pick_piece_text,(2,self.top_of_grid - self.pick_piece_text.get_height()))
+            screen.blit(self.pick_piece_text,(self.board_rect.left//2 - self.pick_piece_text.get_width()//2,self.top_of_grid - self.pick_piece_text.get_height()))
             pygame.display.update()
     
     
@@ -862,6 +911,9 @@ class Game:
         
         if self.code == self.current_row:
             return True
+        
+
+        self.all_guesses.append(self.current_row.copy())
 
         code_copy = self.code.copy()
         for i,(color_1,color_2) in enumerate(zip(self.code,self.current_row)):
@@ -884,10 +936,19 @@ class Game:
         self._update_peg(key_pegs)
 
         self.current_square[0] -= 1
-        self.current_square[1] = 0
+
+        if self.current_square[0] == 0:
+            self.current_square[0] =  1
+            self.current_square[1] = 0
+            self.start_guess_display += 1
+            self._redraw_board()
+
+
+
+
         self.current_row = [None] * self.code_length
 
-        return True if self.current_square[0] == 0 else False
+        #return True if self.current_square[0] == 0 else False
 
 
 
