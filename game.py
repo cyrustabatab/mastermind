@@ -594,6 +594,8 @@ class Game:
         self.question_mark = pygame.transform.scale(self.question_mark,(self.radius,self.radius))
         self.cols = code_length
         self.game_over = False
+
+        self.num_guesses = 0
         self.duplicates =duplicates
         self.blanks = blanks
         description = "NO DUPLICATES" if not duplicates else "DUPLICATES"
@@ -617,6 +619,8 @@ class Game:
         self._create_board_surface()
         self._create_peg_surfaces()
         self._create_guesses_text()
+
+        self.mapping = {}
         
 
         
@@ -657,18 +661,30 @@ class Game:
 
     def _redraw_board(self):
 
+
         
-        print(self.all_guesses)
-        print(self.start_guess_display)
-        for i in range(self.start_guess_display,len(self.all_guesses)):
-            row = self.rows - i 
+        row = self.rows - 1
+        for i in range(self.start_guess_display,self.num_guesses):
             
-            guess_code = self.all_guesses[i]
+            guess_code = self.mapping[i][0]
+            peg = self.pegs_ordered[row - 1]
+            peg_colors = self.mapping[i][1]
+
+
+            
+
+
             for col in range(self.cols):
-            
                 pygame.draw.circle(self.board_surface,guess_code[col] if guess_code[col] is not None else self.circle_color,(col * self.square_width + self.square_width//2,row * self.square_height + self.square_height//2),self.radius)
 
+            for i,color in enumerate(peg_colors):
+                _row = i // self.peg_cols
+                col = i % self.peg_cols
+                
+                peg.draw_color(_row,col,self.circle_color if color is None else color)
 
+
+            row -= 1        
 
 
 
@@ -884,14 +900,14 @@ class Game:
 
 
 
-    def _update_peg(self,key_pegs):
+    def _update_peg(self,peg,key_pegs):
 
 
-        row = self.current_square[0]
 
-        peg = self.pegs_ordered[row - 1]
         for i,color in enumerate(key_pegs):
-
+            
+            if color is None:
+                break
             row = i // self.peg_cols
             col = i % self.peg_cols
             peg.draw_color(row,col,key_pegs[i])
@@ -912,9 +928,7 @@ class Game:
         if self.code == self.current_row:
             return True
         
-
-        self.all_guesses.append(self.current_row.copy())
-
+        
         code_copy = self.code.copy()
         for i,(color_1,color_2) in enumerate(zip(self.code,self.current_row)):
             if color_1 == color_2:
@@ -930,10 +944,25 @@ class Game:
                     index = code_copy_2.index(color) 
                     code_copy_2[index] = -1
                     key_pegs.append(WHITE)
-
+        
         random.shuffle(key_pegs)
+        
 
-        self._update_peg(key_pegs)
+
+        while len(key_pegs) != self.code_length:
+            key_pegs.append(None)
+
+        self.mapping[self.num_guesses] = (self.current_row.copy(),key_pegs)
+
+        self.num_guesses += 1
+
+
+        self._update_peg(self.pegs_ordered[self.current_square[0] - 1],key_pegs)
+        
+
+
+        if self.num_guesses == self.guesses:
+            return False
 
         self.current_square[0] -= 1
 
@@ -949,6 +978,7 @@ class Game:
         self.current_row = [None] * self.code_length
 
         #return True if self.current_square[0] == 0 else False
+        return False
 
 
 
