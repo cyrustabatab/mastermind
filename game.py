@@ -664,7 +664,7 @@ class Game:
 
         
         row = self.rows - 1
-        for i in range(self.start_guess_display,self.num_guesses):
+        for i in range(self.start_guess_display,self.start_guess_display + 9):
             
             guess_code = self.mapping[i][0]
             peg = self.pegs_ordered[row - 1]
@@ -742,10 +742,14 @@ class Game:
         
         
         
-        for i in range(self.MAX_GUESS_DISPLAY):
+        for i in range(self.MAX_GUESS_DISPLAY- 1):
             guess_text = self.texts[self.start_guess_display + i]
             row = self.rows - 1 - i
             screen.blit(guess_text,(self.board_rect.left - 5 - guess_text.get_width(),row * self.square_height + self.square_height//2 - guess_text.get_height()//2))
+
+        
+        guess_text = self.texts[self.MAX_GUESS_DISPLAY -1] if self.num_guesses < self.MAX_GUESS_DISPLAY else  self.texts[self.num_guesses]
+        screen.blit(guess_text,(self.board_rect.left - 5 - guess_text.get_width(),1 * self.square_height + self.square_height//2 - guess_text.get_height()//2))
 
 
 
@@ -824,12 +828,20 @@ class Game:
                     elif self.reset_button.is_hovered_on(point):
                         self._reset()
 
-
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         self.current_square[1] = (self.current_square[1] - 1) % self.code_length
                     elif event.key == pygame.K_RIGHT:
                         self.current_square[1] = (self.current_square[1] + 1) % self.code_length
+                    elif self.num_guesses >= 10 and event.key in (pygame.K_DOWN,pygame.K_UP):
+                        if event.key == pygame.K_DOWN:
+                            self.start_guess_display -= 1
+                        else:
+                            self.start_guess_display += 1
+                        self._redraw_board()
+
+
+
 
 
 
