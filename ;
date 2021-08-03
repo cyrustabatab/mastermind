@@ -580,7 +580,7 @@ class Game:
 
             
 
-    def __init__(self,code_length=4,guesses=15,duplicates=False,blanks=False,mode=1):
+    def __init__(self,code_length=4,guesses=11,duplicates=False,blanks=False,mode=1):
         
         self.guesses = guesses 
         self.code_length = code_length 
@@ -664,7 +664,7 @@ class Game:
 
         
         row = self.rows - 1
-        for i in range(self.start_guess_display,self.start_guess_display + self.MAX_GUESS_DISPLAY - 1):
+        for i in range(self.start_guess_display,self.start_guess_display + 9):
             
             guess_code = self.mapping[i][0]
             peg = self.pegs_ordered[row - 1]
@@ -686,7 +686,6 @@ class Game:
 
             row -= 1        
 
-        
 
 
 
@@ -740,6 +739,9 @@ class Game:
             row,col = self.current_square
             pygame.draw.rect(screen,RED,(self.board_rect.left + col * self.square_width,row * self.square_height,self.square_width,self.square_height),5)
 
+        
+        
+        
         for i in range(self.MAX_GUESS_DISPLAY- 1):
             guess_text = self.texts[self.start_guess_display + i]
             row = self.rows - 1 - i
@@ -748,6 +750,10 @@ class Game:
         
         guess_text = self.texts[self.MAX_GUESS_DISPLAY -1] if self.num_guesses < self.MAX_GUESS_DISPLAY else  self.texts[self.num_guesses]
         screen.blit(guess_text,(self.board_rect.left - 5 - guess_text.get_width(),1 * self.square_height + self.square_height//2 - guess_text.get_height()//2))
+
+
+
+
 
 
 
@@ -827,10 +833,10 @@ class Game:
                         self.current_square[1] = (self.current_square[1] - 1) % self.code_length
                     elif event.key == pygame.K_RIGHT:
                         self.current_square[1] = (self.current_square[1] + 1) % self.code_length
-                    elif self.num_guesses >= self.MAX_GUESS_DISPLAY and event.key in (pygame.K_DOWN,pygame.K_UP):
-                        if self.start_guess_display != 0 and event.key == pygame.K_UP:
+                    elif self.num_guesses >= 10 and event.key in (pygame.K_DOWN,pygame.K_UP):
+                        if event.key == pygame.K_DOWN:
                             self.start_guess_display -= 1
-                        elif event.key == pygame.K_DOWN and self.start_guess_display != self.num_guesses - self.MAX_GUESS_DISPLAY + 1:
+                        else:
                             self.start_guess_display += 1
                         self._redraw_board()
 
@@ -883,8 +889,8 @@ class Game:
 
 
         for peg in self.pegs_ordered:
-            for row in range(self.peg_rows):
-                for col in range(self.peg_cols):
+            for row in range(4):
+                for col in range(4):
                     peg.draw_color(row,col,Game.circle_color)
 
         
@@ -965,23 +971,15 @@ class Game:
 
         self._update_peg(self.pegs_ordered[self.current_square[0] - 1],key_pegs)
         
-        self.current_square[0] -= 1
-                
-        if self.num_guesses == self.guesses:
-            self.num_guesses -= 1
-            return True
 
+        if self.num_guesses == self.guesses:
+            return False
+
+        self.current_square[0] -= 1
         
-        
+
         if self.current_square[0] == 0:
             self.current_square[0] =  1
-            self.current_row = [None] * 4
-            peg = self.pegs_ordered[0]
-            for col in range(self.code_length): 
-                pygame.draw.circle(self.board_surface,self.circle_color,(col * self.square_width + self.square_width//2,self.square_height * 1.5),self.radius)
-            for row in range(self.pegs_rows):
-                for col in range(self.peg_cols):
-                    peg.draw_color(row,col,Game.circle_color)
             self.start_guess_display += 1
             self._redraw_board()
 
