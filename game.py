@@ -2,6 +2,8 @@ import pygame,random,sys,os,pdb
 import time
 from colors import *
 
+# ADD UP and DOWN ARROWS
+
 pygame.init()
 pygame.mixer.init()
 
