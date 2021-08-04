@@ -447,6 +447,10 @@ class Game:
     bg_color = (225,153,106)
     circle_color = (71,43,36)
     question_mark = pygame.image.load(os.path.join('images','question_mark.png')).convert_alpha()
+    up_arrow = pygame.transform.scale(pygame.image.load(os.path.join('images','arrow.png')).convert_alpha(),(50,50))
+    down_arrow = pygame.transform.rotate(up_arrow,180)
+
+
     
     font = pygame.font.SysFont("calibri",40)
 
@@ -751,6 +755,16 @@ class Game:
         guess_text = self.texts[self.MAX_GUESS_DISPLAY -1] if self.num_guesses < self.MAX_GUESS_DISPLAY else  self.texts[self.num_guesses]
         screen.blit(guess_text,(self.board_rect.left - 5 - guess_text.get_width(),1 * self.square_height + self.square_height//2 - guess_text.get_height()//2))
 
+        
+        
+
+        if self.num_guesses >= self.MAX_GUESS_DISPLAY:
+
+            if self.start_guess_display + 1 != self.num_guesses + 1 - self.MAX_GUESS_DISPLAY + 1:
+                screen.blit(Game.down_arrow,(self.board_rect.left-5 - Game.down_arrow.get_width(),0))
+            if self.start_guess_display != 0:
+                screen.blit(Game.up_arrow,(self.board_rect.right+5,0))
+
 
 
 
@@ -887,7 +901,12 @@ class Game:
         for peg in self.pegs_ordered:
             for row in range(self.peg_rows):
                 for col in range(self.peg_cols):
+                    if row * self.peg_cols + col + 1 > self.code_length:
+                        break
                     peg.draw_color(row,col,Game.circle_color)
+                else:
+                    continue
+                break
 
         
         self._hide_code()
@@ -898,6 +917,9 @@ class Game:
         self._generate_code()
         
         self._reset_board_and_pegs_surface()
+        self.start_guess_display = 0
+        self.num_guesses = 0
+        self.mapping.clear()
 
         self.current_square = [self.rows - 1,0]
         self.current_row = [None] * self.code_length
@@ -981,9 +1003,18 @@ class Game:
             peg = self.pegs_ordered[0]
             for col in range(self.code_length): 
                 pygame.draw.circle(self.board_surface,self.circle_color,(col * self.square_width + self.square_width//2,self.square_height * 1.5),self.radius)
-            for row in range(self.pegs_rows):
+            
+
+            
+             
+            for row in range(self.peg_rows):
                 for col in range(self.peg_cols):
+                    if row * self.peg_cols + col + 1 > self.code_length:
+                        break
                     peg.draw_color(row,col,Game.circle_color)
+                else:
+                    continue
+                break
             self.start_guess_display += 1
             self._redraw_board()
 
