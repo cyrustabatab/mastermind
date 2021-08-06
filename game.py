@@ -414,7 +414,7 @@ class Menu:
                         duplicates,blanks = self._difficulty_screen()
                         code_length = self._get_code_length()
                         guesses = self._get_guesses()
-                        Game(code_length=code_length,duplicates=duplicates,blanks=blanks)
+                        Game(code_length=code_length,guesses=guesses,duplicates=duplicates,blanks=blanks)
                         self._load_and_play()
 
 
@@ -642,8 +642,14 @@ class Game:
         self.top_of_grid = self.color_grid.sprite.get_top_of_grid()
 
         self.check_button = Button(self.board_rect.right + gap *2,gap,"CHECK",RED,BLACK)
+        
+        self.reset_button = Button(self.board_rect.right + gap *2,gap,"RESET",RED,BLACK,bottom=False)
+        button_width = 120
+        button_height = 50
+        self.menu_button = pygame.sprite.GroupSingle(Button(self.board_rect.left//2 - button_width//2,self.color_grid.sprite.rect.height + gap * 5,"MENU",RED,BLACK,button_width,button_height))
 
-        self.reset_button = Button(self.board_rect.right + gap * 2,gap,"RESET",RED,BLACK,bottom=False)
+
+
 
 
         self.buttons = pygame.sprite.Group(self.check_button,self.reset_button)
@@ -837,6 +843,8 @@ class Game:
 
                     elif self.reset_button.is_hovered_on(point):
                         self._reset()
+                    elif self.menu_button.sprite.is_hovered_on(point):
+                        return 
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
@@ -867,7 +875,10 @@ class Game:
             screen.fill(self.bg_color)
 
             if self.game_over:
+                self.menu_button.update(point)
                 screen.blit(game_over_text,(self.board_rect.left//2 - game_over_text.get_width()//2,SCREEN_HEIGHT//2 - game_over_text.get_height()//2))
+                self.menu_button.draw(screen)
+
             self._draw_board()
             self.pegs.draw(screen)
             self.color_grid.draw(screen)
