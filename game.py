@@ -17,6 +17,33 @@ pygame.display.set_caption("Mastermind")
 
 BG_COLOR = (225,153,106)
 
+
+
+
+class Back(pygame.sprite.Sprite):
+
+    image_path = os.path.join('images','back.png')
+
+    def __init__(self,size=50,top_x=2,top_y=2):
+        super().__init__()
+
+        image = pygame.image.load(self.image_path)
+        self.image = pygame.transform.scale(image,(size,size))
+        self.rect = self.image.get_rect(topleft=(top_x,top_y))
+
+    
+
+    def clicked_on(self,point):
+
+
+        return self.rect.collidepoint(point)
+
+
+
+
+back_button = pygame.sprite.GroupSingle(Back())
+
+
 class Button(pygame.sprite.Sprite):
     
     button_font = pygame.font.SysFont("calibri",50)
@@ -288,6 +315,8 @@ class Menu:
                         if value:
                             return value
                         start_timer()
+                    elif back_button.sprite.clicked_on(point):
+                        return 
 
 
 
@@ -316,6 +345,7 @@ class Menu:
             if invalid_start:
                 screen.blit(invalid_text,invalid_text_rect)
             buttons.draw(screen)
+            back_button.draw(screen)
             pygame.display.update()
 
 
@@ -364,6 +394,9 @@ class Menu:
                             elif i == 1:
                                 return True,False
                             return False,False
+                    if back_button.sprite.clicked_on(point):
+                        return None,None
+
 
 
             
@@ -381,6 +414,7 @@ class Menu:
             screen.fill(BG_COLOR)
 
             buttons.draw(screen)
+            back_button.draw(screen)
             if current_text:
                 screen.blit(current_text,(SCREEN_WIDTH//2 - current_text.get_width()//2,5))
             pygame.display.update()
@@ -411,11 +445,28 @@ class Menu:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     point = pygame.mouse.get_pos()
                     if buttons.sprite.is_hovered_on(point):
-                        duplicates,blanks = self._difficulty_screen()
-                        code_length = self._get_code_length()
-                        guesses = self._get_guesses()
-                        Game(code_length=code_length,guesses=guesses,duplicates=duplicates,blanks=blanks)
-                        self._load_and_play()
+
+                        while True:
+                            duplicates,blanks = self._difficulty_screen()
+                            if duplicates is None:
+                                break
+                            invalid = True
+                            while invalid:
+                                code_length = self._get_code_length()
+                                if code_length is None:
+                                    break
+
+
+                                guesses = self._get_guesses()
+                                if guesses is None:
+                                    continue
+                                invalid = False
+                            else:
+                                Game(code_length=code_length,guesses=guesses,duplicates=duplicates,blanks=blanks)
+                                self._load_and_play()
+                                break
+
+
 
 
 
@@ -1028,8 +1079,6 @@ class Game:
                 break
             self.start_guess_display += 1
             self._redraw_board()
-
-        
 
         self.current_square[1] = 0
 
